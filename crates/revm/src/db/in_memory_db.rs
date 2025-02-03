@@ -5,6 +5,7 @@ use crate::primitives::{
 };
 use crate::Database;
 use core::convert::Infallible;
+use std::collections::BTreeMap;
 use std::vec::Vec;
 
 /// A [Database] implementation that stores all state changes in memory.
@@ -128,7 +129,7 @@ impl<ExtDB: DatabaseRef> CacheDB<ExtDB> {
 }
 
 impl<ExtDB> DatabaseCommit for CacheDB<ExtDB> {
-    fn commit(&mut self, changes: HashMap<Address, Account>) {
+    fn commit(&mut self, changes: BTreeMap<Address, Account>) {
         for (address, mut account) in changes {
             if !account.is_touched() {
                 continue;

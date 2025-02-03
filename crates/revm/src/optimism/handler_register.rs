@@ -9,15 +9,15 @@ use crate::{
     optimism,
     primitives::{
         db::Database, spec_to_generic, Account, EVMError, Env, ExecutionResult, HaltReason,
-        HashMap, InvalidTransaction, OptimismInvalidTransaction, ResultAndState, Spec, SpecId,
+        InvalidTransaction, OptimismInvalidTransaction, ResultAndState, Spec, SpecId,
         SpecId::REGOLITH, U256,
     },
     Context, ContextPrecompiles, FrameResult,
 };
 use core::ops::Mul;
 use revm_precompile::{secp256r1, PrecompileSpecId};
-use std::string::ToString;
 use std::sync::Arc;
+use std::{collections::BTreeMap, string::ToString};
 
 pub fn optimism_handle_register<DB: Database, EXT>(handler: &mut EvmHandler<'_, EXT, DB>) {
     spec_to_generic!(handler.cfg.spec_id, {
@@ -369,7 +369,7 @@ pub fn end<SPEC: Spec, EXT, DB: Database>(
                 acc.mark_touch();
                 acc
             };
-            let state = HashMap::from_iter([(caller, account)]);
+            let state = BTreeMap::from_iter([(caller, account)]);
 
             // The gas used of a failed deposit post-regolith is the gas
             // limit of the transaction. pre-regolith, it is the gas limit

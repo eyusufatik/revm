@@ -1,15 +1,16 @@
-use crate::{Address, Bytecode, HashMap, SpecId, B256, KECCAK_EMPTY, U256};
+use crate::{Address, Bytecode, SpecId, B256, KECCAK_EMPTY, U256};
 use bitflags::bitflags;
 use core::hash::{Hash, Hasher};
+use std::collections::BTreeMap;
 
 /// EVM State is a mapping from addresses to accounts.
-pub type EvmState = HashMap<Address, Account>;
+pub type EvmState = BTreeMap<Address, Account>;
 
 /// Structure used for EIP-1153 transient storage.
-pub type TransientStorage = HashMap<(Address, U256), U256>;
+pub type TransientStorage = BTreeMap<(Address, U256), U256>;
 
 /// An account's Storage is a mapping from 256-bit integer keys to [EvmStorageSlot]s.
-pub type EvmStorage = HashMap<U256, EvmStorageSlot>;
+pub type EvmStorage = BTreeMap<U256, EvmStorageSlot>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -57,7 +58,7 @@ impl Account {
     pub fn new_not_existing() -> Self {
         Self {
             info: AccountInfo::default(),
-            storage: HashMap::default(),
+            storage: BTreeMap::default(),
             status: AccountStatus::LoadedAsNotExisting,
         }
     }
@@ -158,7 +159,7 @@ impl From<AccountInfo> for Account {
     fn from(info: AccountInfo) -> Self {
         Self {
             info,
-            storage: HashMap::default(),
+            storage: BTreeMap::default(),
             status: AccountStatus::Loaded,
         }
     }

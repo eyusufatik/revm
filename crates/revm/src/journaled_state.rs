@@ -3,13 +3,15 @@ use revm_interpreter::Eip7702CodeLoad;
 use crate::{
     interpreter::{AccountLoad, InstructionResult, SStoreResult, SelfDestructResult, StateLoad},
     primitives::{
-        db::Database, hash_map::Entry, Account, Address, Bytecode, EVMError, EvmState,
-        EvmStorageSlot, HashMap, HashSet, Log, SpecId, SpecId::*, TransientStorage, B256,
-        KECCAK_EMPTY, PRECOMPILE3, U256,
+        db::Database, Account, Address, Bytecode, EVMError, EvmState, EvmStorageSlot, HashSet, Log,
+        SpecId, SpecId::*, TransientStorage, B256, KECCAK_EMPTY, PRECOMPILE3, U256,
     },
 };
 use core::mem;
-use std::vec::Vec;
+use std::{
+    collections::{btree_map::Entry, BTreeMap},
+    vec::Vec,
+};
 
 /// A journal of state changes internal to the EVM.
 ///
@@ -60,7 +62,7 @@ impl JournaledState {
     /// And will not take into account if account is not existing or empty.
     pub fn new(spec: SpecId, warm_preloaded_addresses: HashSet<Address>) -> JournaledState {
         Self {
-            state: HashMap::default(),
+            state: BTreeMap::default(),
             transient_storage: TransientStorage::default(),
             logs: Vec::new(),
             journal: vec![vec![]],

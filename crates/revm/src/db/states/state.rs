@@ -294,7 +294,7 @@ impl<DB: Database> Database for State<DB> {
 }
 
 impl<DB: Database> DatabaseCommit for State<DB> {
-    fn commit(&mut self, evm_state: HashMap<Address, Account>) {
+    fn commit(&mut self, evm_state: BTreeMap<Address, Account>) {
         let transitions = self.cache.apply_evm_state(evm_state);
         self.apply_transition(transitions);
     }

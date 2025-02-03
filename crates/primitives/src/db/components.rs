@@ -2,12 +2,14 @@
 pub mod block_hash;
 pub mod state;
 
+use std::collections::BTreeMap;
+
 pub use block_hash::{BlockHash, BlockHashRef};
 pub use state::{State, StateRef};
 
 use crate::{
     db::{Database, DatabaseRef},
-    Account, AccountInfo, Address, Bytecode, HashMap, B256, U256,
+    Account, AccountInfo, Address, Bytecode, B256, U256,
 };
 
 use super::DatabaseCommit;
@@ -77,7 +79,7 @@ impl<S: StateRef, BH: BlockHashRef> DatabaseRef for DatabaseComponents<S, BH> {
 }
 
 impl<S: DatabaseCommit, BH: BlockHashRef> DatabaseCommit for DatabaseComponents<S, BH> {
-    fn commit(&mut self, changes: HashMap<Address, Account>) {
+    fn commit(&mut self, changes: BTreeMap<Address, Account>) {
         self.state.commit(changes);
     }
 }
