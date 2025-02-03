@@ -120,3 +120,6 @@ blst = ["dep:blst"]
 name = "bench"
 path = "benches/bench.rs"
 harness = false
+
+[patch.crates-io]
+secp256k1 = { git = "https://github.com/Sovereign-Labs/rust-secp256k1.git", branch = "risc0-compatible-0-29-0" }

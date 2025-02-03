@@ -22,3 +22,7 @@ debug = true
 [profile.ethtests]
 inherits = "test"
 opt-level = 3
+
+
+[patch.crates-io]
+secp256k1 = { git = "https://github.com/Sovereign-Labs/rust-secp256k1.git", branch = "risc0-compatible-0-29-0" }
