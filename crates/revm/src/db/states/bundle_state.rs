@@ -715,7 +715,9 @@ impl BundleState {
                 if let Some(this_account) = self.state.get_mut(address) {
                     // As this account was destroyed inside `other` bundle.
                     // we are fine to wipe/drain this storage and put it inside revert.
-                    for (key, value) in std::mem::take(&mut this_account.storage) {
+                    let new_map = this_account.storage.clone();
+                    this_account.storage.clear();
+                    for (key, value) in new_map {
                         revert
                             .storage
                             .entry(key)

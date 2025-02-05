@@ -106,11 +106,15 @@ impl AccountRevert {
     ) -> Self {
         // Take present storage values as the storages that we are going to revert to.
         // As those values got destroyed.
-        let mut previous_storage: BTreeMap<U256, RevertToSlot> =
-            std::mem::take(&mut previous_storage)
+        let mut previous_storage: BTreeMap<U256, RevertToSlot> = {
+            let new_map = previous_storage.clone();
+            previous_storage.clear();
+
+            new_map
                 .into_iter()
                 .map(|(key, value)| (key, RevertToSlot::Some(value.present_value)))
-                .collect();
+                .collect()
+        };
         for (key, _) in updated_storage {
             previous_storage
                 .entry(key)
@@ -135,10 +139,12 @@ impl AccountRevert {
             | AccountStatus::Changed
             | AccountStatus::LoadedEmptyEIP161
             | AccountStatus::Loaded => {
+                let new_map = bundle_account.storage.clone();
+                bundle_account.storage.clear();
                 let mut ret = AccountRevert::new_selfdestructed_again(
                     bundle_account.status,
                     account_info_revert,
-                    std::mem::take(&mut bundle_account.storage),
+                    new_map,
                     updated_storage.clone(),
                 );
                 ret.wipe_storage = true;

@@ -228,7 +228,8 @@ impl BundleAccount {
             }
             AccountStatus::Destroyed => {
                 // clear this storage and move it to the Revert.
-                let this_storage = std::mem::take(&mut self.storage);
+                let this_storage = self.storage.clone();
+                self.storage.clear();
                 let ret = match self.status {
                     AccountStatus::InMemoryChange | AccountStatus::Changed | AccountStatus::Loaded | AccountStatus::LoadedEmptyEIP161 => {
                         Some(AccountRevert::new_selfdestructed(self.status, info_revert, this_storage))
@@ -347,12 +348,14 @@ impl BundleAccount {
                             None
                         }
                         AccountStatus::DestroyedChanged => {
+                            let new_map = self.storage.clone();
+                            self.storage.clear();
                             // From destroyed changed to destroyed again.
                             Some(AccountRevert::new_selfdestructed_again(
                                 // destroyed again will set empty account.
                                 AccountStatus::DestroyedChanged,
                                 AccountInfoRevert::RevertTo(self.info.clone().unwrap_or_default()),
-                                std::mem::take(&mut self.storage),
+                                new_map,
                                 BTreeMap::default(),
                             ))
                         }
