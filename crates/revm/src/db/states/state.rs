@@ -9,7 +9,10 @@ use revm_interpreter::primitives::{
 };
 use std::{
     boxed::Box,
-    collections::{btree_map, BTreeMap},
+    collections::{
+        btree_map::{self, Entry},
+        BTreeMap,
+    },
     vec::Vec,
 };
 
@@ -176,7 +179,7 @@ impl<DB: Database> State<DB> {
     /// database and inserted into the cache.
     pub fn load_cache_account(&mut self, address: Address) -> Result<&mut CacheAccount, DB::Error> {
         match self.cache.accounts.entry(address) {
-            hash_map::Entry::Vacant(entry) => {
+            Entry::Vacant(entry) => {
                 if self.use_preloaded_bundle {
                     // load account from bundle state
                     if let Some(account) =
@@ -190,13 +193,13 @@ impl<DB: Database> State<DB> {
                 let account = match info {
                     None => CacheAccount::new_loaded_not_existing(),
                     Some(acc) if acc.is_empty() => {
-                        CacheAccount::new_loaded_empty_eip161(HashMap::default())
+                        CacheAccount::new_loaded_empty_eip161(BTreeMap::default())
                     }
-                    Some(acc) => CacheAccount::new_loaded(acc, HashMap::default()),
+                    Some(acc) => CacheAccount::new_loaded(acc, BTreeMap::default()),
                 };
                 Ok(entry.insert(account))
             }
-            hash_map::Entry::Occupied(entry) => Ok(entry.into_mut()),
+            Entry::Occupied(entry) => Ok(entry.into_mut()),
         }
     }
 
@@ -224,8 +227,8 @@ impl<DB: Database> Database for State<DB> {
 
     fn code_by_hash(&mut self, code_hash: B256) -> Result<Bytecode, Self::Error> {
         let res = match self.cache.contracts.entry(code_hash) {
-            hash_map::Entry::Occupied(entry) => Ok(entry.get().clone()),
-            hash_map::Entry::Vacant(entry) => {
+            btree_map::Entry::Occupied(entry) => Ok(entry.get().clone()),
+            btree_map::Entry::Vacant(entry) => {
                 if self.use_preloaded_bundle {
                     if let Some(code) = self.bundle_state.contracts.get(&code_hash) {
                         entry.insert(code.clone());
@@ -251,8 +254,8 @@ impl<DB: Database> Database for State<DB> {
                 .account
                 .as_mut()
                 .map(|account| match account.storage.entry(index) {
-                    hash_map::Entry::Occupied(entry) => Ok(*entry.get()),
-                    hash_map::Entry::Vacant(entry) => {
+                    btree_map::Entry::Occupied(entry) => Ok(*entry.get()),
+                    btree_map::Entry::Vacant(entry) => {
                         // if account was destroyed or account is newly built
                         // we return zero and don't ask database.
                         let value = if is_storage_known {
@@ -396,7 +399,7 @@ mod tests {
                     info: Some(existing_account_changed_info.clone()),
                     previous_status: AccountStatus::Loaded,
                     previous_info: Some(existing_account_initial_info.clone()),
-                    storage: HashMap::from_iter([(
+                    storage: BTreeMap::from_iter([(
                         slot1,
                         StorageSlot::new_changed(
                             *existing_account_initial_storage.get(&slot1).unwrap(),
@@ -429,7 +432,7 @@ mod tests {
                     info: Some(new_account_changed_info2.clone()),
                     previous_status: AccountStatus::InMemoryChange,
                     previous_info: Some(new_account_changed_info),
-                    storage: HashMap::from_iter([(
+                    storage: BTreeMap::from_iter([(
                         slot1,
                         StorageSlot::new_changed(U256::ZERO, U256::from(1)),
                     )]),
@@ -443,7 +446,7 @@ mod tests {
                     info: Some(existing_account_changed_info.clone()),
                     previous_status: AccountStatus::InMemoryChange,
                     previous_info: Some(existing_account_changed_info.clone()),
-                    storage: HashMap::from_iter([
+                    storage: BTreeMap::from_iter([
                         (
                             slot1,
                             StorageSlot::new_changed(U256::from(100), U256::from(1_000)),
@@ -480,7 +483,7 @@ mod tests {
                     AccountRevert {
                         account: AccountInfoRevert::DeleteIt,
                         previous_status: AccountStatus::LoadedNotExisting,
-                        storage: HashMap::from_iter([(slot1, RevertToSlot::Some(U256::ZERO))]),
+                        storage: BTreeMap::from_iter([(slot1, RevertToSlot::Some(U256::ZERO))]),
                         wipe_storage: false,
                     }
                 ),
@@ -489,7 +492,7 @@ mod tests {
                     AccountRevert {
                         account: AccountInfoRevert::RevertTo(existing_account_initial_info.clone()),
                         previous_status: AccountStatus::Loaded,
-                        storage: HashMap::from_iter([
+                        storage: BTreeMap::from_iter([
                             (
                                 slot1,
                                 RevertToSlot::Some(
@@ -519,7 +522,7 @@ mod tests {
                 info: Some(new_account_changed_info2),
                 original_info: None,
                 status: AccountStatus::InMemoryChange,
-                storage: HashMap::from_iter([(
+                storage: BTreeMap::from_iter([(
                     slot1,
                     StorageSlot::new_changed(U256::ZERO, U256::from(1))
                 )]),
@@ -535,7 +538,7 @@ mod tests {
                 info: Some(existing_account_changed_info),
                 original_info: Some(existing_account_initial_info),
                 status: AccountStatus::InMemoryChange,
-                storage: HashMap::from_iter([
+                storage: BTreeMap::from_iter([
                     (
                         slot1,
                         StorageSlot::new_changed(
@@ -623,7 +626,7 @@ mod tests {
                     info: Some(existing_account_with_storage_info.clone()),
                     previous_status: AccountStatus::Loaded,
                     previous_info: Some(existing_account_with_storage_info.clone()),
-                    storage: HashMap::from_iter([
+                    storage: BTreeMap::from_iter([
                         (
                             slot1,
                             StorageSlot::new_changed(U256::from(1), U256::from(10)),
@@ -664,7 +667,7 @@ mod tests {
                     info: Some(existing_account_with_storage_info.clone()),
                     previous_status: AccountStatus::Changed,
                     previous_info: Some(existing_account_with_storage_info.clone()),
-                    storage: HashMap::from_iter([
+                    storage: BTreeMap::from_iter([
                         (
                             slot1,
                             StorageSlot::new_changed(U256::from(10), U256::from(1)),
@@ -708,7 +711,7 @@ mod tests {
                 info: None,
                 previous_status: AccountStatus::Loaded,
                 previous_info: Some(existing_account_info.clone()),
-                storage: HashMap::default(),
+                storage: BTreeMap::default(),
                 storage_was_destroyed: true,
             },
         )]));
@@ -721,7 +724,7 @@ mod tests {
                 info: Some(existing_account_info.clone()),
                 previous_status: AccountStatus::Destroyed,
                 previous_info: None,
-                storage: HashMap::from_iter([(
+                storage: BTreeMap::from_iter([(
                     slot1,
                     StorageSlot::new_changed(U256::ZERO, U256::from(1)),
                 )]),
@@ -738,7 +741,7 @@ mod tests {
                 previous_status: AccountStatus::DestroyedChanged,
                 previous_info: Some(existing_account_info.clone()),
                 // storage change should be ignored
-                storage: HashMap::default(),
+                storage: BTreeMap::default(),
                 storage_was_destroyed: true,
             },
         )]));
@@ -751,7 +754,7 @@ mod tests {
                 info: Some(existing_account_info.clone()),
                 previous_status: AccountStatus::DestroyedAgain,
                 previous_info: None,
-                storage: HashMap::from_iter([(
+                storage: BTreeMap::from_iter([(
                     slot2,
                     StorageSlot::new_changed(U256::ZERO, U256::from(2)),
                 )]),
@@ -765,12 +768,12 @@ mod tests {
 
         assert_eq!(
             bundle_state.state,
-            HashMap::from_iter([(
+            BTreeMap::from_iter([(
                 existing_account_address,
                 BundleAccount {
                     info: Some(existing_account_info.clone()),
                     original_info: Some(existing_account_info.clone()),
-                    storage: HashMap::from_iter([(
+                    storage: BTreeMap::from_iter([(
                         slot2,
                         StorageSlot::new_changed(U256::ZERO, U256::from(2))
                     )]),
@@ -786,7 +789,7 @@ mod tests {
                 AccountRevert {
                     account: AccountInfoRevert::DoNothing,
                     previous_status: AccountStatus::Loaded,
-                    storage: HashMap::from_iter([(slot2, RevertToSlot::Destroyed)]),
+                    storage: BTreeMap::from_iter([(slot2, RevertToSlot::Destroyed)]),
                     wipe_storage: true,
                 }
             )])])

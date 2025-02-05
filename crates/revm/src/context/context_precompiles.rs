@@ -5,7 +5,11 @@ use crate::{
 };
 use dyn_clone::DynClone;
 use revm_precompile::{PrecompileSpecId, PrecompileWithAddress, Precompiles};
-use std::{boxed::Box, sync::Arc};
+use std::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 /// A single precompile handler.
 pub enum ContextPrecompile<DB: Database> {
@@ -32,7 +36,7 @@ impl<DB: Database> Clone for ContextPrecompile<DB> {
 enum PrecompilesCow<DB: Database> {
     /// Default precompiles, returned by `Precompiles::new`. Used to fast-path the default case.
     StaticRef(&'static Precompiles),
-    Owned(HashMap<Address, ContextPrecompile<DB>>),
+    Owned(BTreeMap<Address, ContextPrecompile<DB>>),
 }
 
 impl<DB: Database> Clone for PrecompilesCow<DB> {
@@ -79,14 +83,14 @@ impl<DB: Database> ContextPrecompiles<DB> {
 
     /// Creates a new precompiles context from the given precompiles.
     #[inline]
-    pub fn from_precompiles(precompiles: HashMap<Address, ContextPrecompile<DB>>) -> Self {
+    pub fn from_precompiles(precompiles: BTreeMap<Address, ContextPrecompile<DB>>) -> Self {
         Self {
             inner: PrecompilesCow::Owned(precompiles),
         }
     }
 
     /// Returns precompiles addresses as a HashSet.
-    pub fn addresses_set(&self) -> HashSet<Address> {
+    pub fn addresses_set(&self) -> BTreeSet<Address> {
         match self.inner {
             PrecompilesCow::StaticRef(inner) => inner.addresses_set().clone(),
             PrecompilesCow::Owned(ref inner) => inner.keys().cloned().collect(),
@@ -136,7 +140,7 @@ impl<DB: Database> ContextPrecompiles<DB> {
     ///
     /// Clones the precompiles map if it is shared.
     #[inline]
-    pub fn to_mut(&mut self) -> &mut HashMap<Address, ContextPrecompile<DB>> {
+    pub fn to_mut(&mut self) -> &mut BTreeMap<Address, ContextPrecompile<DB>> {
         if let PrecompilesCow::StaticRef(_) = self.inner {
             self.mutate_into_owned();
         }

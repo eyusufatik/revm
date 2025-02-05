@@ -38,7 +38,11 @@ pub use revm_primitives as primitives;
 use cfg_if::cfg_if;
 use core::hash::Hash;
 use once_cell::race::OnceBox;
-use std::{boxed::Box, vec::Vec};
+use std::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
+};
 
 pub fn calc_linear_cost_u32(len: usize, base: u64, word: u64) -> u64 {
     (len as u64 + 32 - 1) / 32 * word + base
@@ -47,9 +51,9 @@ pub fn calc_linear_cost_u32(len: usize, base: u64, word: u64) -> u64 {
 #[derive(Clone, Default, Debug)]
 pub struct Precompiles {
     /// Precompiles.
-    inner: HashMap<Address, Precompile>,
+    inner: BTreeMap<Address, Precompile>,
     /// Addresses of precompile.
-    addresses: HashSet<Address>,
+    addresses: BTreeSet<Address>,
 }
 
 impl Precompiles {
@@ -82,7 +86,7 @@ impl Precompiles {
     }
 
     /// Returns inner HashMap of precompiles.
-    pub fn inner(&self) -> &HashMap<Address, Precompile> {
+    pub fn inner(&self) -> &BTreeMap<Address, Precompile> {
         &self.inner
     }
 
@@ -225,7 +229,7 @@ impl Precompiles {
     }
 
     /// Returns the precompiles addresses as a set.
-    pub fn addresses_set(&self) -> &HashSet<Address> {
+    pub fn addresses_set(&self) -> &BTreeSet<Address> {
         &self.addresses
     }
 

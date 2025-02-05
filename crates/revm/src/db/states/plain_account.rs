@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::primitives::{AccountInfo, EvmStorageSlot, HashMap, U256};
 
 // TODO rename this to BundleAccount. As for the block level we have original state.
@@ -76,17 +78,17 @@ impl StorageSlot {
 /// This storage represent values that are before block changed.
 ///
 /// Note: Storage that we get EVM contains original values before block changed.
-pub type StorageWithOriginalValues = HashMap<U256, StorageSlot>;
+pub type StorageWithOriginalValues = BTreeMap<U256, StorageSlot>;
 
 /// Simple plain storage that does not have previous value.
 /// This is used for loading from database, cache and for bundle state.
-pub type PlainStorage = HashMap<U256, U256>;
+pub type PlainStorage = BTreeMap<U256, U256>;
 
 impl From<AccountInfo> for PlainAccount {
     fn from(info: AccountInfo) -> Self {
         Self {
             info,
-            storage: HashMap::default(),
+            storage: BTreeMap::default(),
         }
     }
 }

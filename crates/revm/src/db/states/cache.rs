@@ -4,7 +4,7 @@ use super::{
 use revm_interpreter::primitives::{
     Account, AccountInfo, Address, Bytecode, EvmState, HashMap, B256,
 };
-use std::vec::Vec;
+use std::{collections::BTreeMap, vec::Vec};
 
 /// Cache state contains both modified and original values.
 ///
@@ -15,10 +15,10 @@ use std::vec::Vec;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CacheState {
     /// Block state account with account state.
-    pub accounts: HashMap<Address, CacheAccount>,
+    pub accounts: BTreeMap<Address, CacheAccount>,
     /// Created contracts.
     // TODO add bytecode counter for number of bytecodes added/removed.
-    pub contracts: HashMap<B256, Bytecode>,
+    pub contracts: BTreeMap<B256, Bytecode>,
     /// Has EIP-161 state clear enabled (Spurious Dragon hardfork).
     pub has_state_clear: bool,
 }
@@ -33,8 +33,8 @@ impl CacheState {
     /// New default state.
     pub fn new(has_state_clear: bool) -> Self {
         Self {
-            accounts: HashMap::default(),
-            contracts: HashMap::default(),
+            accounts: BTreeMap::default(),
+            contracts: BTreeMap::default(),
             has_state_clear,
         }
     }
@@ -65,9 +65,9 @@ impl CacheState {
     /// Insert Loaded (Or LoadedEmptyEip161 if account is empty) account.
     pub fn insert_account(&mut self, address: Address, info: AccountInfo) {
         let account = if !info.is_empty() {
-            CacheAccount::new_loaded(info, HashMap::default())
+            CacheAccount::new_loaded(info, BTreeMap::default())
         } else {
-            CacheAccount::new_loaded_empty_eip161(HashMap::default())
+            CacheAccount::new_loaded_empty_eip161(BTreeMap::default())
         };
         self.accounts.insert(address, account);
     }

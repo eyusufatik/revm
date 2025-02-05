@@ -1,3 +1,5 @@
+use std::collections::btree_map;
+
 use super::{AccountRevert, BundleAccount, StorageWithOriginalValues};
 use crate::db::AccountStatus;
 use revm_interpreter::primitives::{hash_map, AccountInfo, Bytecode, B256, I256, U256};
@@ -100,10 +102,10 @@ impl TransitionAccount {
             // update changed values to this transition.
             for (key, slot) in other.storage.into_iter() {
                 match self.storage.entry(key) {
-                    hash_map::Entry::Vacant(entry) => {
+                    btree_map::Entry::Vacant(entry) => {
                         entry.insert(slot);
                     }
-                    hash_map::Entry::Occupied(mut entry) => {
+                    btree_map::Entry::Occupied(mut entry) => {
                         let value = entry.get_mut();
                         // if new value is same as original value. Remove storage entry.
                         if value.original_value() == slot.present_value() {

@@ -4,7 +4,7 @@ use super::{
 };
 use core::ops::{Deref, DerefMut};
 use revm_interpreter::primitives::{AccountInfo, Address, HashMap, U256};
-use std::vec::Vec;
+use std::{collections::BTreeMap, vec::Vec};
 
 /// Contains reverts of multiple account in multiple transitions (Transitions as a block).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -84,7 +84,7 @@ impl Reverts {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AccountRevert {
     pub account: AccountInfoRevert,
-    pub storage: HashMap<U256, RevertToSlot>,
+    pub storage: BTreeMap<U256, RevertToSlot>,
     pub previous_status: AccountStatus,
     pub wipe_storage: bool,
 }
@@ -106,10 +106,11 @@ impl AccountRevert {
     ) -> Self {
         // Take present storage values as the storages that we are going to revert to.
         // As those values got destroyed.
-        let mut previous_storage: HashMap<U256, RevertToSlot> = previous_storage
-            .drain()
-            .map(|(key, value)| (key, RevertToSlot::Some(value.present_value)))
-            .collect();
+        let mut previous_storage: BTreeMap<U256, RevertToSlot> =
+            std::mem::take(&mut previous_storage)
+                .into_iter()
+                .map(|(key, value)| (key, RevertToSlot::Some(value.present_value)))
+                .collect();
         for (key, _) in updated_storage {
             previous_storage
                 .entry(key)
@@ -137,7 +138,7 @@ impl AccountRevert {
                 let mut ret = AccountRevert::new_selfdestructed_again(
                     bundle_account.status,
                     account_info_revert,
-                    bundle_account.storage.drain().collect(),
+                    std::mem::take(&mut bundle_account.storage),
                     updated_storage.clone(),
                 );
                 ret.wipe_storage = true;

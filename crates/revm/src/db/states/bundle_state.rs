@@ -10,7 +10,7 @@ use revm_interpreter::primitives::{
     AccountInfo, Address, Bytecode, HashMap, HashSet, B256, KECCAK_EMPTY, U256,
 };
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{btree_map, BTreeMap, BTreeSet},
     vec::Vec,
 };
 
@@ -18,16 +18,16 @@ use std::{
 #[derive(Debug)]
 pub struct BundleBuilder {
     states: HashSet<Address>,
-    state_original: HashMap<Address, AccountInfo>,
-    state_present: HashMap<Address, AccountInfo>,
-    state_storage: HashMap<Address, HashMap<U256, (U256, U256)>>,
+    state_original: BTreeMap<Address, AccountInfo>,
+    state_present: BTreeMap<Address, AccountInfo>,
+    state_storage: BTreeMap<Address, BTreeMap<U256, (U256, U256)>>,
 
     reverts: BTreeSet<(u64, Address)>,
     revert_range: RangeInclusive<u64>,
-    revert_account: HashMap<(u64, Address), Option<Option<AccountInfo>>>,
-    revert_storage: HashMap<(u64, Address), Vec<(U256, U256)>>,
+    revert_account: BTreeMap<(u64, Address), Option<Option<AccountInfo>>>,
+    revert_storage: BTreeMap<(u64, Address), Vec<(U256, U256)>>,
 
-    contracts: HashMap<B256, Bytecode>,
+    contracts: BTreeMap<B256, Bytecode>,
 }
 
 /// Option for [`BundleState`] when converting it to the plain state.
@@ -56,14 +56,14 @@ impl Default for BundleBuilder {
     fn default() -> Self {
         BundleBuilder {
             states: HashSet::default(),
-            state_original: HashMap::default(),
-            state_present: HashMap::default(),
-            state_storage: HashMap::default(),
+            state_original: BTreeMap::default(),
+            state_present: BTreeMap::default(),
+            state_storage: BTreeMap::default(),
             reverts: BTreeSet::new(),
             revert_range: 0..=0,
-            revert_account: HashMap::default(),
-            revert_storage: HashMap::default(),
-            contracts: HashMap::default(),
+            revert_account: BTreeMap::default(),
+            revert_storage: BTreeMap::default(),
+            contracts: BTreeMap::default(),
         }
     }
 }
@@ -115,7 +115,11 @@ impl BundleBuilder {
     }
 
     /// Collect storage info of BundleState state
-    pub fn state_storage(mut self, address: Address, storage: HashMap<U256, (U256, U256)>) -> Self {
+    pub fn state_storage(
+        mut self,
+        address: Address,
+        storage: BTreeMap<U256, (U256, U256)>,
+    ) -> Self {
         self.set_state_storage(address, storage);
         self
     }
@@ -195,7 +199,7 @@ impl BundleBuilder {
     pub fn set_state_storage(
         &mut self,
         address: Address,
-        storage: HashMap<U256, (U256, U256)>,
+        storage: BTreeMap<U256, (U256, U256)>,
     ) -> &mut Self {
         self.states.insert(address);
         self.state_storage.insert(address, storage);
@@ -327,17 +331,19 @@ impl BundleBuilder {
     }
 
     /// Mutable getter for `state_original` field
-    pub fn get_state_original_mut(&mut self) -> &mut HashMap<Address, AccountInfo> {
+    pub fn get_state_original_mut(&mut self) -> &mut BTreeMap<Address, AccountInfo> {
         &mut self.state_original
     }
 
     /// Mutable getter for `state_present` field
-    pub fn get_state_present_mut(&mut self) -> &mut HashMap<Address, AccountInfo> {
+    pub fn get_state_present_mut(&mut self) -> &mut BTreeMap<Address, AccountInfo> {
         &mut self.state_present
     }
 
     /// Mutable getter for `state_storage` field
-    pub fn get_state_storage_mut(&mut self) -> &mut HashMap<Address, HashMap<U256, (U256, U256)>> {
+    pub fn get_state_storage_mut(
+        &mut self,
+    ) -> &mut BTreeMap<Address, BTreeMap<U256, (U256, U256)>> {
         &mut self.state_storage
     }
 
@@ -354,17 +360,17 @@ impl BundleBuilder {
     /// Mutable getter for `revert_account` field
     pub fn get_revert_account_mut(
         &mut self,
-    ) -> &mut HashMap<(u64, Address), Option<Option<AccountInfo>>> {
+    ) -> &mut BTreeMap<(u64, Address), Option<Option<AccountInfo>>> {
         &mut self.revert_account
     }
 
     /// Mutable getter for `revert_storage` field
-    pub fn get_revert_storage_mut(&mut self) -> &mut HashMap<(u64, Address), Vec<(U256, U256)>> {
+    pub fn get_revert_storage_mut(&mut self) -> &mut BTreeMap<(u64, Address), Vec<(U256, U256)>> {
         &mut self.revert_storage
     }
 
     /// Mutable getter for `contracts` field
-    pub fn get_contracts_mut(&mut self) -> &mut HashMap<B256, Bytecode> {
+    pub fn get_contracts_mut(&mut self) -> &mut BTreeMap<B256, Bytecode> {
         &mut self.contracts
     }
 }
@@ -396,9 +402,9 @@ impl BundleRetention {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BundleState {
     /// Account state.
-    pub state: HashMap<Address, BundleAccount>,
+    pub state: BTreeMap<Address, BundleAccount>,
     /// All created contracts in this block.
-    pub contracts: HashMap<B256, Bytecode>,
+    pub contracts: BTreeMap<B256, Bytecode>,
     /// Changes to revert.
     ///
     /// Note: Inside vector is *not* sorted by address.
@@ -502,7 +508,7 @@ impl BundleState {
     }
 
     /// Return reference to the state.
-    pub fn state(&self) -> &HashMap<Address, BundleAccount> {
+    pub fn state(&self) -> &BTreeMap<Address, BundleAccount> {
         &self.state
     }
 
@@ -552,7 +558,7 @@ impl BundleState {
             }
             // update state and create revert.
             let revert = match self.state.entry(address) {
-                hash_map::Entry::Occupied(mut entry) => {
+                btree_map::Entry::Occupied(mut entry) => {
                     let entry = entry.get_mut();
                     self.state_size -= entry.size_hint();
                     // update and create revert if it is present
@@ -561,7 +567,7 @@ impl BundleState {
                     self.state_size += entry.size_hint();
                     revert
                 }
-                hash_map::Entry::Vacant(entry) => {
+                btree_map::Entry::Vacant(entry) => {
                     // make revert from transition account
                     let present_bundle = transition.present_bundle_account();
                     let revert = transition.create_revert();
@@ -656,10 +662,10 @@ impl BundleState {
     /// Extend the bundle with other state
     ///
     /// Update the `other` state only if `other` is not flagged as destroyed.
-    pub fn extend_state(&mut self, other_state: HashMap<Address, BundleAccount>) {
+    pub fn extend_state(&mut self, other_state: BTreeMap<Address, BundleAccount>) {
         for (address, other_account) in other_state {
             match self.state.entry(address) {
-                hash_map::Entry::Occupied(mut entry) => {
+                btree_map::Entry::Occupied(mut entry) => {
                     let this = entry.get_mut();
                     self.state_size -= this.size_hint();
 
@@ -683,7 +689,7 @@ impl BundleState {
                     // Update the state size
                     self.state_size += this.size_hint();
                 }
-                hash_map::Entry::Vacant(entry) => {
+                btree_map::Entry::Vacant(entry) => {
                     // just insert if empty
                     self.state_size += other_account.size_hint();
                     entry.insert(other_account);
@@ -709,7 +715,7 @@ impl BundleState {
                 if let Some(this_account) = self.state.get_mut(address) {
                     // As this account was destroyed inside `other` bundle.
                     // we are fine to wipe/drain this storage and put it inside revert.
-                    for (key, value) in this_account.storage.drain() {
+                    for (key, value) in std::mem::take(&mut this_account.storage) {
                         revert
                             .storage
                             .entry(key)
@@ -767,7 +773,7 @@ impl BundleState {
             for (address, revert_account) in reverts.into_iter() {
                 self.reverts_size -= revert_account.size_hint();
                 match self.state.entry(address) {
-                    Entry::Occupied(mut entry) => {
+                    btree_map::Entry::Occupied(mut entry) => {
                         let account = entry.get_mut();
                         self.state_size -= account.size_hint();
                         if account.revert(revert_account) {
@@ -776,13 +782,13 @@ impl BundleState {
                             self.state_size += account.size_hint();
                         }
                     }
-                    Entry::Vacant(entry) => {
+                    btree_map::Entry::Vacant(entry) => {
                         // create empty account that we will revert on.
                         // Only place where this account is not existing is if revert is DeleteIt.
                         let mut account = BundleAccount::new(
                             None,
                             None,
-                            HashMap::default(),
+                            BTreeMap::default(),
                             AccountStatus::LoadedNotExisting,
                         );
                         if !account.revert(revert_account) {
@@ -969,7 +975,7 @@ mod tests {
             )
             .state_storage(
                 account1(),
-                HashMap::from_iter([(slot1(), (U256::from(0), U256::from(10)))]),
+                BTreeMap::from_iter([(slot1(), (U256::from(0), U256::from(10)))]),
             )
             .state_address(account2())
             .state_present_account_info(
@@ -1002,7 +1008,7 @@ mod tests {
             )
             .state_storage(
                 account1(),
-                HashMap::from_iter([(slot1(), (U256::from(0), U256::from(15)))]),
+                BTreeMap::from_iter([(slot1(), (U256::from(0), U256::from(15)))]),
             )
             .revert_address(0, account1())
             .revert_account_info(
@@ -1132,7 +1138,7 @@ mod tests {
             Some(&BundleAccount::new(
                 None,
                 Some(AccountInfo::default()),
-                HashMap::default(),
+                BTreeMap::default(),
                 AccountStatus::Changed
             ))
         );
@@ -1267,7 +1273,7 @@ mod tests {
         assert!(builder.get_state_storage_mut().is_empty());
         builder
             .get_state_storage_mut()
-            .insert(account1(), HashMap::default());
+            .insert(account1(), BTreeMap::default());
         assert!(builder.get_state_storage_mut().contains_key(&account1()));
 
         // Test get_reverts_mut

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use super::{
     reverts::AccountInfoRevert, AccountRevert, AccountStatus, RevertToSlot, StorageSlot,
     StorageWithOriginalValues, TransitionAccount,
@@ -94,7 +96,7 @@ impl BundleAccount {
             AccountInfoRevert::DeleteIt => {
                 self.info = None;
                 if self.original_info.is_none() {
-                    self.storage = HashMap::default();
+                    self.storage = BTreeMap::default();
                     return true;
                 } else {
                     // set all storage to zero but preserve original values.
@@ -146,7 +148,7 @@ impl BundleAccount {
             };
 
         let previous_storage_from_update =
-            |updated_storage: &StorageWithOriginalValues| -> HashMap<U256, RevertToSlot> {
+            |updated_storage: &StorageWithOriginalValues| -> BTreeMap<U256, RevertToSlot> {
                 updated_storage
                     .iter()
                     .filter(|s| s.1.is_changed())
@@ -226,7 +228,7 @@ impl BundleAccount {
             }
             AccountStatus::Destroyed => {
                 // clear this storage and move it to the Revert.
-                let this_storage = self.storage.drain().collect();
+                let this_storage = std::mem::take(&mut self.storage);
                 let ret = match self.status {
                     AccountStatus::InMemoryChange | AccountStatus::Changed | AccountStatus::Loaded | AccountStatus::LoadedEmptyEIP161 => {
                         Some(AccountRevert::new_selfdestructed(self.status, info_revert, this_storage))
@@ -282,7 +284,7 @@ impl BundleAccount {
                                 let mut storage = core::mem::take(&mut self.storage)
                                     .into_iter()
                                     .map(|t| (t.0, RevertToSlot::Some(t.1.present_value)))
-                                    .collect::<HashMap<_, _>>();
+                                    .collect::<BTreeMap<_, _>>();
                                 for key in updated_storage.keys() {
                                     // as it is not existing inside Destroyed storage this means
                                     // that previous values must be zero
@@ -305,7 +307,7 @@ impl BundleAccount {
                                 // destroyed again will set empty account.
                                 AccountStatus::DestroyedAgain,
                                 AccountInfoRevert::DeleteIt,
-                                HashMap::default(),
+                                BTreeMap::default(),
                                 updated_storage.clone(),
                             ))
                         }
@@ -328,7 +330,7 @@ impl BundleAccount {
                 let ret = if let Some(revert_state) = AccountRevert::new_selfdestructed_from_bundle(
                     info_revert,
                     self,
-                    &HashMap::default(),
+                    &BTreeMap::default(),
                 ) {
                     Some(revert_state)
                 } else {
@@ -350,8 +352,8 @@ impl BundleAccount {
                                 // destroyed again will set empty account.
                                 AccountStatus::DestroyedChanged,
                                 AccountInfoRevert::RevertTo(self.info.clone().unwrap_or_default()),
-                                self.storage.drain().collect(),
-                                HashMap::default(),
+                                std::mem::take(&mut self.storage),
+                                BTreeMap::default(),
                             ))
                         }
                         _ => unreachable!("Invalid state to DestroyedAgain from {self:?}"),

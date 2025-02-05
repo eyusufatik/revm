@@ -1,17 +1,20 @@
 use super::TransitionAccount;
 use revm_interpreter::primitives::{hash_map::Entry, Address, HashMap};
-use std::vec::Vec;
+use std::{
+    collections::{btree_map, BTreeMap},
+    vec::Vec,
+};
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct TransitionState {
     /// Block state account with account state
-    pub transitions: HashMap<Address, TransitionAccount>,
+    pub transitions: BTreeMap<Address, TransitionAccount>,
 }
 
 impl TransitionState {
     /// Create new transition state containing one [`TransitionAccount`].
     pub fn single(address: Address, transition: TransitionAccount) -> Self {
-        let mut transitions = HashMap::default();
+        let mut transitions = BTreeMap::default();
         transitions.insert(address, transition);
         TransitionState { transitions }
     }
@@ -28,11 +31,11 @@ impl TransitionState {
     pub fn add_transitions(&mut self, transitions: Vec<(Address, TransitionAccount)>) {
         for (address, account) in transitions {
             match self.transitions.entry(address) {
-                Entry::Occupied(entry) => {
+                btree_map::Entry::Occupied(entry) => {
                     let entry = entry.into_mut();
                     entry.update(account);
                 }
-                Entry::Vacant(entry) => {
+                btree_map::Entry::Vacant(entry) => {
                     entry.insert(account);
                 }
             }

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use super::{
     plain_account::PlainStorage, AccountStatus, BundleAccount, PlainAccount,
     StorageWithOriginalValues, TransitionAccount,
@@ -162,7 +164,7 @@ impl CacheAccount {
                 status: self.status,
                 previous_info,
                 previous_status,
-                storage: HashMap::default(),
+                storage: BTreeMap::default(),
                 storage_was_destroyed: true,
             })
         }
@@ -186,7 +188,7 @@ impl CacheAccount {
                 status: self.status,
                 previous_info,
                 previous_status,
-                storage: HashMap::default(),
+                storage: BTreeMap::default(),
                 storage_was_destroyed: true,
             })
         }
@@ -259,7 +261,7 @@ impl CacheAccount {
                 status: self.status,
                 previous_info,
                 previous_status,
-                storage: HashMap::default(),
+                storage: BTreeMap::default(),
                 storage_was_destroyed: false,
             },
         )
